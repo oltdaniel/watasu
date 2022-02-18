@@ -335,7 +335,7 @@ print("done");`
             watasu.step();
         });
 
-        if(watasu._runner.isDone) {
+        if (watasu._runner.isDone) {
             alert('Done.');
         }
 
@@ -347,7 +347,7 @@ print("done");`
 
     function run() {
         measurePrint("run program", () => {
-            while(!watasu._runner.isDone) {
+            while (!watasu._runner.isDone) {
                 watasu.step();
             }
         });
