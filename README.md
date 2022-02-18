@@ -8,7 +8,7 @@
   <img src="https://user-images.githubusercontent.com/53529846/154762793-cf4e54b6-f12a-4caa-bdbb-8c06628a5ea9.png" width="80%">
 </p>
 
-> This is a screenshot of the example that can be found in [`examples/index.html`](./examples/index.html).
+> This is a screenshot of the example that can be found in [`examples/index.html`](./examples/index.html). It is deployed at [`oltdaniel.eu/watasu`](https://oltdaniel.eu/watasu/).
 
 ## Usage
 
