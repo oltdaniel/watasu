@@ -1,0 +1,99 @@
+* {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+main {
+    margin: 50px auto;
+    max-width: 1400px;
+    width: 98%;
+
+    display: flex;
+    flex-direction: row;
+}
+
+@media only screen and (max-width: 1000px) {
+    main {
+        flex-direction: column;
+    }
+}
+
+main > section {
+    flex: 1;
+    flex-grow: 1;
+    padding: 0 20px;
+}
+
+section {
+    display: flex;
+    flex-direction: column;
+    margin: 10px 0;
+}
+
+textarea {
+    resize: vertical;
+}
+
+code, pre {
+    background-color: beige;
+    padding: 2px 5px;
+}
+
+hr {
+    width: 100%;
+    outline: none;
+    border: none;
+    background-color: grey;
+    padding: 0.5px 0;
+}
+
+p {
+    text-align: justify;
+}
+
+small {
+    color: grey;
+}
+
+#tokens-container li {
+    padding: 5px 0;
+    cursor: pointer;
+}
+
+.tree, .tree ul, .tree li {
+    position: relative;
+}
+
+.tree, .tree ul {
+    list-style: none;
+    padding-left: 32px;
+}
+
+.tree li::before, .tree li::after {
+    content: "";
+    position: absolute;
+    left: -12px;
+}
+
+.tree li::before {
+    border-top: 1px solid black;
+    top: 9px;
+    width: 8px;
+    height: 0;
+}
+
+.tree li::after {
+    border-left: 1px solid black;
+    height: 100%;
+    width: 0px;
+    top: 2px;
+}
+
+.tree ul > li:last-child::after, .tree > li:last-child::after {
+    height: 8px;
+}
+
+li button {
+    margin-left: 10px;
+    padding: 1px 3px;
+    font-size: 0.7rem;
+}

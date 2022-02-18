@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>watasu - example</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+    <main>
+        <section>
+            <section>
+                <h2>Watasu (渡す) Interactive Example</h2>
+
+                <p>This is an interactive example of what "Watasu" is able to do. Everything here is using the default
+                    version of the "Watasu" library and simply visualizes the data that is available.</p>
+
+                <small>The instruction set can be found on the right side. <a href="#instructions">Click
+                        here</a>.</small>
+            </section>
+
+            <section>
+                <div>
+                    <button id="btn-load-program">Load Program (tokenize & parse)</button>
+                </div>
+                <hr>
+                <textarea id="code-input" rows="20" placeholder="code..."></textarea>
+            </section>
+
+            <section>
+                <h2>Context</h2>
+
+                <div>
+                    <button id="btn-run">Run ▶</button>
+                    <button id="btn-step">Step ↷</button>
+                </div>
+
+                <pre>Position: <code id="context-position-container">No position</code></pre>
+
+                <div style="max-height: 30vh; overflow-y: auto; overflow-x: hidden;">
+                    <pre><code id="context-container">No context</code></pre>
+                </div>
+            </section>
+        </section>
+
+        <section>
+            <section>
+                <h2>Tokens</h2>
+                <small>Click to highlight token in editor.</small>
+                <div style="max-height: 30vh; overflow-y: auto; overflow-x: hidden;">
+                    <ol id="tokens-container">
+                        <p>No tokens</p>
+                    </ol>
+                </div>
+            </section>
+
+            <section>
+                <h2>AST</h2>
+                <small>Click "Show" to highlight node in editor.</small>
+                <div style="max-height: 30vh; overflow-y: auto; overflow-x: hidden;">
+                    <ul id="ast-container" class="tree">No AST</ul>
+                </div>
+            </section>
+
+            <section id="instructions">
+                <h2>Instructions</h2>
+                <ul>
+                    <li><code>set(variable: dataReference, value: *)</code></li>
+                    <li><code>print(...args: *)</code></li>
+                    <li><code>inc(variable: dataReference)</code></li>
+                    <li><code>dec(variable: dataReference)</code></li>
+                    <li><code>not(variable: *)</code></li>
+                    <li><code>lower(a: *, b: *)</code></li>
+                    <li><code>greater(a: *, b: *)</code></li>
+                    <li><code>while(condition: *) { block }</code></li>
+                    <li><code>if(condition: *) { block }</code></li>
+                    <li>more can be easily added through the API</li>
+                </ul>
+            </section>
+        </section>
+    </main>
+</body>
+<script>
+    document.body.onload = () => {
+        document.getElementById('code-input').value = `set(sum, 0);
+print("the current sum is ", sum);
+inc(sum);
+set(sometext, tostring(sum));
+while(lower(sum, 10)) {
+    inc(sum);
+    print("sum", sum);
+}
+if(greater(sum, 5)) {
+    while(greater(sum, 5)) {
+        dec(sum);
+    }
+}
+if(not(lower(sum, 5))) {
+    print("decrement success");
+}
+print("done");`
+    }
+</script>
+<script>
+    function doInBackground(func) {
+        // force work from task queue in browser
+        setTimeout(func, 1);
+    }
+
+    function nowMs() {
+        return window.performance.now();
+    }
+
+    function measurePrint(name, func) {
+        const start = nowMs();
+        func();
+        const diff = nowMs() - start;
+        console.log(`Call "${name}" took ${diff.toFixed(2)}ms`);
+    }
+</script>
+<script type="module" src="../dist/watasu.js"></script>
+<script type="module">
+    import Watasu from '../dist/watasu.js';
+
+    const codeInput = document.getElementById('code-input');
+    const contextContainer = document.getElementById('context-container');
+    const contextPositionContainer = document.getElementById('context-position-container');
+    const tokensContainer = document.getElementById('tokens-container');
+    const astContainer = document.getElementById('ast-container');
+
+    const btnLoadProgram = document.getElementById('btn-load-program');
+    btnLoadProgram.onclick = loadProgram;
+
+    const btnRun = document.getElementById('btn-run');
+    btnRun.onclick = run;
+
+    const btnStep = document.getElementById('btn-step');
+    btnStep.onclick = step;
+
+    const watasu = new Watasu();
+
+    watasu.registerCall('set', function set(name, value) {
+        if (name.name === 'dataReference') {
+            this._context[name.value] = this.resolveParameterValue(value);
+        } else {
+            throw new Error('invalid set call');
+        }
+    })
+    watasu.registerCall('inc', function inc(name) {
+        if (name.name === 'dataReference') {
+            this._context[name.value]++;
+        } else {
+            throw new Error('invalid inc call');
+        }
+    })
+    watasu.registerCall('dec', function dec(name) {
+        if (name.name === 'dataReference') {
+            this._context[name.value]--;
+        } else {
+            throw new Error('invalid dec call');
+        }
+    })
+    watasu.registerCall('print', function print(...args) {
+        console.log(...this.resolveParametersValues(args));
+    })
+    watasu.registerCall('tostring', function tostring(value) {
+        return `${this.resolveParameterValue(value)}`;
+    })
+    watasu.registerCall('while', function whileFunc(condition) {
+        // if not true, don't even start
+        if (!this.resolveParameterValue(condition)) {
+            return;
+        }
+        this._position.deeper();
+        this._position.pushReturn(() => {
+            if (this.resolveParameterValue(condition)) {
+                // no reset required, false will trigger a reset
+                return false;
+            } else {
+                // no higher required, true will trigger a higher
+                return true;
+            }
+        });
+    })
+    watasu.registerCall('if', function ifFunc(condition) {
+        // if not true, don't even start
+        if (!this.resolveParameterValue(condition)) {
+            return;
+        }
+        this._position.deeper();
+        this._position.pushReturn(() => true);
+    })
+    watasu.registerCall('lower', function lower(a, b) {
+        return this.resolveParameterValue(a) < this.resolveParameterValue(b);
+    })
+    watasu.registerCall('greater', function greater(a, b) {
+        return this.resolveParameterValue(a) > this.resolveParameterValue(b);
+    })
+    watasu.registerCall('not', function not(condition) {
+        return !this.resolveParameterValue(condition);
+    })
+
+
+    function showToken(start, end) {
+        codeInput.focus();
+        codeInput.setSelectionRange(start, end);
+    }
+
+    function loadProgram() {
+        measurePrint("load program", () => {
+            watasu.loadProgram(codeInput.value);
+        });
+
+        // Render tokens
+        const tokens = watasu.tokens;
+
+        tokensContainer.innerHTML = null;
+
+        for (const token of tokens) {
+            let li = document.createElement('li');
+            li.innerHTML = `<code>${token.name}</code> with <code>${token.value}</code>`;
+            li.onclick = () => {
+                showToken(token.position, token.position + token.value.length);
+            }
+            tokensContainer.appendChild(li);
+        }
+
+        // Render ast nodes
+        const ast = watasu.ast;
+
+        astContainer.innerHTML = null;
+
+        const generateASTNodeLink = (astNode) => {
+            const child = document.createElement('li');
+
+            switch (astNode.name) {
+                case 'functionCall':
+                    child.innerHTML = `call <code>${astNode.value.name}</code>`;
+                    break;
+
+                case 'dataBoolean':
+                case 'dataNumber':
+                case 'dataReference':
+                    child.innerHTML = `${astNode.name}=<code>${astNode.value}</code>`;
+                    break;
+                case 'dataString':
+                    child.innerHTML = `${astNode.name}=<code>"${astNode.value}"</code>`;
+                    break;
+            }
+
+            const showBtn = document.createElement('button');
+            showBtn.innerText = 'Show';
+            showBtn.onclick = () => {
+                showToken(astNode.range.start, astNode.range.end);
+            }
+            child.appendChild(showBtn);
+
+            return child;
+        }
+
+        const generateASTBlock = (block) => {
+            let items = [];
+
+            if (!(Symbol.iterator in Object(block))) {
+                return items;
+            }
+
+            for (const astNode of block) {
+                const child = generateASTNodeLink(astNode);
+
+                console.log(astNode.value.block);
+
+                if (astNode.value.block) {
+                    const subItems = generateASTBlock(astNode.value.block.value);
+                    if (subItems.length > 0) {
+                        child.appendChild(...subItems);
+                    }
+                }
+
+
+                items.push(child);
+            }
+
+            return items;
+        };
+
+        const generateASTTree = (name, ast) => {
+            const root = document.createElement('li');
+            root.innerText = name;
+
+            const list = document.createElement('ul');
+
+            for (const astNode of ast) {
+                const item = generateASTNodeLink(astNode);
+                const itemList = document.createElement('ul');
+                if (astNode.value.parameters) {
+                    itemList.appendChild(generateASTTree('Parameters', astNode.value.parameters))
+                }
+                if (astNode.value.block) {
+                    itemList.appendChild(generateASTTree('Block', astNode.value.block.value))
+                }
+                item.appendChild(itemList);
+                list.appendChild(item);
+            }
+
+            root.appendChild(list);
+
+            return root;
+        };
+
+        astContainer.appendChild(generateASTTree('Root', ast));
+
+        const end = document.createElement('li');
+        end.innerText = "End.";
+
+        astContainer.appendChild(end);
+    }
+
+    function updateProgramContext() {
+        contextPositionContainer.innerText = JSON.stringify(watasu._runner._position._path);
+        contextContainer.innerText = JSON.stringify(watasu._runner._context, null, 2);
+    }
+
+    function step() {
+        measurePrint("step program", () => {
+            watasu.step();
+        });
+
+        if(watasu._runner.isDone) {
+            alert('Done.');
+        }
+
+        const currentNode = watasu._runner._lastNode;
+        showToken(currentNode.range.start, currentNode.range.end);
+
+        updateProgramContext();
+    }
+
+    function run() {
+        measurePrint("run program", () => {
+            while(!watasu._runner.isDone) {
+                watasu.step();
+            }
+        });
+
+        updateProgramContext();
+
+        alert('done.');
+    }
+</script>
+
+</html>
