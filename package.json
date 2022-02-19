@@ -3,22 +3,15 @@
   "version": "0.0.1-alpha",
   "description": "customizable abstract function layer for your JavaScript application",
   "source": "src/watasu.js",
-  "global": "dist/watasu.js",
+  "main": "dist/watasu.js",
   "repository": "git@github.com:oltdaniel/watasu.git",
   "author": "oltdaniel <53529846+oltdaniel@users.noreply.github.com>",
   "license": "GPL-3.0",
   "scripts": {
-    "watch": "parcel watch",
-    "build": "parcel build"
+    "watch": "esbuild src/watasu.js --format=esm --bundle --sourcemap --outfile=dist/watasu.js --watch",
+    "build": "esbuild src/watasu.js --format=esm --bundle --minify --outfile=dist/watasu.js"
   },
   "devDependencies": {
-    "parcel": "latest"
-  },
-  "browserslist": "last 1 versions, not dead, not IE 11",
-  "targets": {
-    "global": {
-      "outputFormat": "esmodule",
-      "isLibrary": true
-    }
+    "esbuild": "latest"
   }
 }

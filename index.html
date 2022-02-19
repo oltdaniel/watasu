@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./assets/style.css">
 </head>
 
 <body>
@@ -127,9 +127,8 @@ print("done");`
         console.log(`Call "${name}" took ${diff.toFixed(2)}ms`);
     }
 </script>
-<script type="module" src="../dist/watasu.js"></script>
 <script type="module">
-    import Watasu from '../dist/watasu.js';
+    import Watasu, {WatasuParser} from './dist/watasu.js';
 
     const codeInput = document.getElementById('code-input');
     const contextContainer = document.getElementById('context-container');
@@ -149,21 +148,21 @@ print("done");`
     const watasu = new Watasu();
 
     watasu.registerCall('set', function set(name, value) {
-        if (name.name === 'dataReference') {
+        if (name.name === WatasuParser.ASTNodeNames.DATA_REFERENCE) {
             this._context[name.value] = this.resolveParameterValue(value);
         } else {
             throw new Error('invalid set call');
         }
     })
     watasu.registerCall('inc', function inc(name) {
-        if (name.name === 'dataReference') {
+        if (name.name === WatasuParser.ASTNodeNames.DATA_REFERENCE) {
             this._context[name.value]++;
         } else {
             throw new Error('invalid inc call');
         }
     })
     watasu.registerCall('dec', function dec(name) {
-        if (name.name === 'dataReference') {
+        if (name.name === WatasuParser.ASTNodeNames.DATA_REFERENCE) {
             this._context[name.value]--;
         } else {
             throw new Error('invalid dec call');
