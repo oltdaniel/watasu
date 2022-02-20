@@ -12,6 +12,8 @@
     "build": "esbuild src/watasu.js --format=esm --bundle --minify --outfile=dist/watasu.js"
   },
   "devDependencies": {
-    "esbuild": "latest"
+    "esbuild": "latest",
+    "eslint": "latest",
+    "eslint-config-google": "latest"
   }
 }
