@@ -131,7 +131,17 @@ export default class Parser {
     // shortcut if close the call directly
     if (this.peekCheck(TokenNames.PARATHESIS_CLOSE)) {
       this.consumeToken();
-      return new ASTNode(ASTNodeNames.FUNCTION_CALL, {name, parameters});
+      if (this.peekCheck(TokenNames.INSTRUCTION_END)) {
+        const endToken = this.consumeToken();
+        return new ASTNode(
+            ASTNodeNames.FUNCTION_CALL,
+            {name, parameters},
+            dataReference.position,
+            endToken.position + 1,
+        );
+      } else {
+        this.throwTokenError('correct function call end');
+      }
     }
 
     let expectValue = true;
